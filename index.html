@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>APS Check - Checklist de Apostas Esportivas</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Supabase CDN -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <h1><i class="fas fa-chart-line"></i> APS Check</h1>
+                <p>Seu checklist inteligente de apostas esportivas</p>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <!-- Seção para adicionar novos jogos -->
+            <section class="add-game-section">
+                <div class="card">
+                    <h2><i class="fas fa-plus-circle"></i> Adicionar Novo Jogo</h2>
+                    <form id="gameForm" class="game-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="homeTeam">Time da Casa</label>
+                                <input type="text" id="homeTeam" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="awayTeam">Time Visitante</label>
+                                <input type="text" id="awayTeam" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="betType">Tipo de Aposta</label>
+                                <select id="betType" required>
+                                    <option value="">Selecione...</option>
+                                    <option value="1">Vitória Casa (1)</option>
+                                    <option value="X">Empate (X)</option>
+                                    <option value="2">Vitória Visitante (2)</option>
+                                    <option value="1X">Casa ou Empate (1X)</option>
+                                    <option value="12">Casa ou Visitante (12)</option>
+                                    <option value="X2">Empate ou Visitante (X2)</option>
+                                    <option value="over1.5">Mais de 1.5 gols</option>
+                                    <option value="over2.5">Mais de 2.5 gols</option>
+                                    <option value="under2.5">Menos de 2.5 gols</option>
+                                    <option value="btts">Ambos marcam</option>
+                                    <option value="over2.5_btts">Mais de 2.5 e Ambas Marcam</option>
+                                    <option value="1_btts">Casa e Ambos Marcam</option>
+                                    <option value="2_btts">Fora e Ambos Marcam</option>
+                                    <option value="1_over2.5">Casa e Mais de 2.5 gols</option>
+                                    <option value="1_over1.5">Casa e Mais de 1.5 gols</option>
+                                    <option value="1X_over1.5">Casa ou Empate e Mais de 1.5 gols</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="odds">Odd</label>
+                                <input type="number" id="odds" step="0.01" min="1.01" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="gameDate">Data do Jogo</label>
+                            <input type="datetime-local" id="gameDate" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Adicionar Jogo
+                        </button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Seção de jogos pendentes -->
+            <section class="pending-games-section">
+                <div class="card">
+                    <h2><i class="fas fa-clock"></i> Jogos Pendentes</h2>
+                    <div id="pendingGames" class="games-list">
+                        <div class="empty-state">
+                            <i class="fas fa-futbol"></i>
+                            <p>Nenhum jogo pendente. Adicione jogos para criar suas múltiplas!</p>
+                        </div>
+                    </div>
+                    <div class="multiple-actions" id="multipleActions" style="display: none;">
+                        <div class="selected-info">
+                            <span id="selectedCount">0</span> jogos selecionados
+                            <span class="total-odds">Odd Total: <span id="totalOdds">0.00</span></span>
+                        </div>
+                        <button id="createMultiple" class="btn btn-success">
+                            <i class="fas fa-layer-group"></i> Criar Múltipla
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Seção de múltiplas ativas -->
+            <section class="active-multiples-section">
+                <div class="card">
+                    <h2><i class="fas fa-layer-group"></i> Múltiplas Ativas</h2>
+                    <div id="activeMultiples" class="multiples-list">
+                        <div class="empty-state">
+                            <i class="fas fa-chart-bar"></i>
+                            <p>Nenhuma múltipla criada ainda.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Seção de histórico -->
+            <section class="history-section">
+                <div class="card">
+                    <div class="multiple-actions-header">
+                        <h2><i class="fas fa-history"></i> Histórico de Múltiplas</h2>
+                        <button id="clearHistory" class="btn btn-delete" style="display: none;">
+                            <i class="fas fa-trash"></i> Limpar Histórico
+                        </button>
+                    </div>
+                    <div id="historyMultiples" class="multiples-list">
+                        <div class="empty-state">
+                            <i class="fas fa-archive"></i>
+                            <p>Nenhuma múltipla finalizada ainda.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal para confirmar múltipla -->
+    <div id="multipleModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-layer-group"></i> Confirmar Múltipla</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="multiple-summary">
+                    <div class="summary-item">
+                        <label>Valor da Aposta (R$):</label>
+                        <input type="number" id="betAmount" step="0.01" min="0.01" value="10.00">
+                    </div>
+                    <div class="summary-item">
+                        <label>Odd Total:</label>
+                        <span id="modalTotalOdds">0.00</span>
+                    </div>
+                    <div class="summary-item">
+                        <label>Retorno Potencial:</label>
+                        <span id="potentialReturn">R$ 0.00</span>
+                    </div>
+                </div>
+                <div class="selected-games-summary" id="selectedGamesSummary">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelMultiple" class="btn btn-secondary">Cancelar</button>
+                <button id="confirmMultiple" class="btn btn-success">Confirmar Múltipla</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para editar jogo -->
+    <div id="editGameModal" class="modal">
+        <div class="modal-content">
+            <span class="close-edit">&times;</span>
+            <h2>Editar Jogo</h2>
+            <div class="modal-body">
+                <form id="editGameForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editHomeTeam">Time da Casa:</label>
+                            <input type="text" id="editHomeTeam" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editAwayTeam">Time Visitante:</label>
+                            <input type="text" id="editAwayTeam" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editBetType">Tipo de Aposta:</label>
+                            <select id="editBetType" required>
+                                <option value="">Selecione...</option>
+                                <option value="1">Vitória Casa (1)</option>
+                                <option value="X">Empate (X)</option>
+                                <option value="2">Vitória Visitante (2)</option>
+                                <option value="1X">Casa ou Empate (1X)</option>
+                                <option value="12">Casa ou Visitante (12)</option>
+                                <option value="X2">Empate ou Visitante (X2)</option>
+                                <option value="over1.5">Mais de 1.5 gols</option>
+                                <option value="over2.5">Mais de 2.5 gols</option>
+                                <option value="under2.5">Menos de 2.5 gols</option>
+                                <option value="btts">Ambos marcam</option>
+                                <option value="over2.5_btts">Mais de 2.5 e Ambas Marcam</option>
+                                <option value="1_btts">Casa e Ambos Marcam</option>
+                                <option value="2_btts">Fora e Ambos Marcam</option>
+                                <option value="1_over2.5">Casa e Mais de 2.5 gols</option>
+                                <option value="1_over1.5">Casa e Mais de 1.5 gols</option>
+                                <option value="1X_over1.5">Casa ou Empate e Mais de 1.5 gols</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="editOdds">Odd:</label>
+                            <input type="number" id="editOdds" min="1.01" step="0.01" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="editGameDate">Data e Hora do Jogo:</label>
+                        <input type="datetime-local" id="editGameDate" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-actions">
+                <button id="saveEditGame" class="btn btn-primary">Salvar Alterações</button>
+                <button id="cancelEditGame" class="btn btn-secondary">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="supabase-config.js"></script>
+    <script src="supabase-functions.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
