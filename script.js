@@ -76,7 +76,15 @@ function setupEventListeners() {
 
 // Adicionar novo jogo
 async function handleAddGame(event) {
+    console.log('🚀 handleAddGame chamada');
     event.preventDefault();
+    
+    // Verificação simples de autenticação
+    if (!requireAuth()) {
+        console.log('❌ Usuário não autenticado, interrompendo adição');
+        showNotification('Faça login para adicionar jogos!', 'error');
+        return;
+    }
     
     const formData = new FormData(gameForm);
     const game = {
@@ -89,16 +97,27 @@ async function handleAddGame(event) {
         createdAt: new Date().toISOString()
     };
     
+    console.log('📝 Dados do jogo criado:', game);
+    
     try {
+        console.log('💾 Tentando salvar no banco...');
         await savePendingGame(game);
+        
+        console.log('📋 Adicionando ao array local...');
         pendingGames.push(game);
+        
+        console.log('🔄 Atualizando display...');
         updateDisplay();
+        
+        console.log('🧹 Resetando formulário...');
         gameForm.reset();
         
         // Animação de sucesso
+        console.log('✅ Mostrando notificação de sucesso...');
         showNotification('Jogo adicionado com sucesso!', 'success');
     } catch (error) {
-        console.error('Erro ao adicionar jogo:', error);
+        console.error('💥 Erro ao adicionar jogo:', error);
+        showNotification('Erro ao adicionar jogo: ' + error.message, 'error');
     }
 }
 
@@ -752,25 +771,36 @@ function showNotification(message, type = 'info') {
 
 // Funções de proteção de autenticação
 async function waitForAuthCheck() {
+    // Aguardar até que as funções de autenticação estejam disponíveis
+    while (typeof isUserLoggedIn !== 'function') {
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
     // Aguardar até que a verificação de autenticação seja concluída
     let attempts = 0;
     const maxAttempts = 50; // 5 segundos máximo
     
     while (attempts < maxAttempts) {
-        if (typeof isUserLoggedIn === 'function') {
-            if (isUserLoggedIn()) {
-                await loadData();
-            } else {
-                showAuthRequiredMessage();
+        try {
+            const user = getCurrentUser();
+            if (user !== undefined) {
+                // Autenticação verificada, carregar dados se logado
+                if (isUserLoggedIn()) {
+                    await loadData();
+                }
+                return; // Sair da função independentemente do status de login
             }
-            return;
+        } catch (error) {
+            // Ainda aguardando inicialização
         }
+        
         await new Promise(resolve => setTimeout(resolve, 100));
         attempts++;
     }
     
-    // Se não conseguir verificar autenticação, mostrar mensagem
-    showAuthRequiredMessage();
+    // Se chegou aqui, a autenticação foi inicializada mas pode não estar logado
+    // Não mostrar mensagem de erro automaticamente, apenas não carregar dados
+    console.log('Autenticação inicializada, usuário não está logado');
 }
 
 function showAuthRequiredMessage() {
@@ -785,59 +815,17 @@ function showAuthRequiredMessage() {
     showNotification('Faça login para acessar suas apostas!', 'info');
 }
 
+// Função de verificação de autenticação simplificada
 function requireAuth() {
-    if (typeof isUserLoggedIn !== 'function' || !isUserLoggedIn()) {
-        showNotification('Você precisa estar logado para realizar esta ação!', 'error');
+    if (typeof isUserLoggedIn !== 'function') {
+        console.error('Função isUserLoggedIn não está disponível');
         return false;
     }
+    
+    if (!isUserLoggedIn()) {
+        console.log('Usuário não está logado');
+        return false;
+    }
+    
     return true;
-}
-
-// Sobrescrever funções que precisam de autenticação
-const originalHandleAddGame = handleAddGame;
-async function handleAddGame(event) {
-    if (!requireAuth()) return;
-    return await originalHandleAddGame(event);
-}
-
-const originalConfirmMultiple = confirmMultiple;
-async function confirmMultiple() {
-    if (!requireAuth()) return;
-    return await originalConfirmMultiple();
-}
-
-const originalRemovePendingGame = removePendingGame;
-async function removePendingGame(gameId) {
-    if (!requireAuth()) return;
-    return await originalRemovePendingGame(gameId);
-}
-
-const originalDeleteActiveMultiple = deleteActiveMultiple;
-async function deleteActiveMultiple(multipleId) {
-    if (!requireAuth()) return;
-    return await originalDeleteActiveMultiple(multipleId);
-}
-
-const originalDeleteHistoryMultiple = deleteHistoryMultiple;
-async function deleteHistoryMultiple(multipleId) {
-    if (!requireAuth()) return;
-    return await originalDeleteHistoryMultiple(multipleId);
-}
-
-const originalClearHistory = clearHistory;
-async function clearHistory() {
-    if (!requireAuth()) return;
-    return await originalClearHistory();
-}
-
-const originalSaveEditGame = saveEditGame;
-async function saveEditGame() {
-    if (!requireAuth()) return;
-    return await originalSaveEditGame();
-}
-
-const originalMarkGameResult = markGameResult;
-async function markGameResult(multipleId, gameId, result) {
-    if (!requireAuth()) return;
-    return await originalMarkGameResult(multipleId, gameId, result);
 }

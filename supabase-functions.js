@@ -4,29 +4,70 @@
 // Função para salvar jogo pendente
 async function savePendingGame(game) {
     try {
+        console.log('🎮 Iniciando savePendingGame com:', game);
+        
         const user = getCurrentUser();
+        console.log('👤 Usuário atual:', user);
+        
         if (!user) {
             throw new Error('Usuário não autenticado');
         }
 
-        const { data, error } = await window.supabaseClient
+        // Primeiro, tentar com user_id (nova estrutura)
+        const gameDataWithUserId = {
+            id: game.id,
+            user_id: user.id,
+            home_team: game.homeTeam,
+            away_team: game.awayTeam,
+            bet_type: game.betType,
+            odds: game.odds,
+            game_date: game.gameDate,
+            created_at: game.createdAt
+        };
+        
+        console.log('📊 Tentando inserir com user_id:', gameDataWithUserId);
+
+        let { data, error } = await window.supabaseClient
             .from('pending_games')
-            .insert([{
+            .insert([gameDataWithUserId]);
+
+        console.log('✅ Resposta do Supabase - data:', data);
+        console.log('❌ Resposta do Supabase - error:', error);
+
+        // Se der erro relacionado à coluna user_id, tentar sem ela (estrutura antiga)
+        if (error && (error.message.includes('user_id') || error.message.includes('column') || error.message.includes('does not exist'))) {
+            console.log('⚠️ Coluna user_id não existe, tentando sem ela...');
+            
+            const gameDataWithoutUserId = {
                 id: game.id,
-                user_id: user.id,
                 home_team: game.homeTeam,
                 away_team: game.awayTeam,
                 bet_type: game.betType,
                 odds: game.odds,
                 game_date: game.gameDate,
                 created_at: game.createdAt
-            }]);
+            };
+            
+            console.log('📊 Tentando inserir sem user_id:', gameDataWithoutUserId);
+            
+            const result = await window.supabaseClient
+                .from('pending_games')
+                .insert([gameDataWithoutUserId]);
+                
+            data = result.data;
+            error = result.error;
+            
+            console.log('✅ Segunda tentativa - data:', data);
+            console.log('❌ Segunda tentativa - error:', error);
+        }
 
         if (error) throw error;
+        
+        console.log('🎉 Jogo salvo com sucesso!');
         return data;
     } catch (error) {
-        console.error('Erro ao salvar jogo pendente:', error);
-        showNotification('Erro ao salvar jogo!', 'error');
+        console.error('💥 Erro ao salvar jogo pendente:', error);
+        showNotification('Erro ao salvar jogo: ' + error.message, 'error');
         throw error;
     }
 }
