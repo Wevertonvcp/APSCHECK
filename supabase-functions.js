@@ -4,10 +4,16 @@
 // Função para salvar jogo pendente
 async function savePendingGame(game) {
     try {
+        const user = getCurrentUser();
+        if (!user) {
+            throw new Error('Usuário não autenticado');
+        }
+
         const { data, error } = await window.supabaseClient
             .from('pending_games')
             .insert([{
                 id: game.id,
+                user_id: user.id,
                 home_team: game.homeTeam,
                 away_team: game.awayTeam,
                 bet_type: game.betType,
@@ -28,9 +34,15 @@ async function savePendingGame(game) {
 // Função para carregar jogos pendentes
 async function loadPendingGames() {
     try {
+        const user = getCurrentUser();
+        if (!user) {
+            return [];
+        }
+
         const { data, error } = await window.supabaseClient
             .from('pending_games')
             .select('*')
+            .eq('user_id', user.id)
             .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -94,11 +106,17 @@ async function updatePendingGame(gameId, game) {
 // Função para salvar múltipla
 async function saveMultiple(multiple) {
     try {
+        const user = getCurrentUser();
+        if (!user) {
+            throw new Error('Usuário não autenticado');
+        }
+
         // Primeiro, salvar a múltipla
         const { data: multipleData, error: multipleError } = await window.supabaseClient
             .from('multiples')
             .insert([{
                 id: multiple.id,
+                user_id: user.id,
                 bet_amount: multiple.betAmount,
                 total_odds: multiple.totalOdds,
                 potential_return: multiple.potentialReturn,
@@ -138,12 +156,18 @@ async function saveMultiple(multiple) {
 // Função para carregar múltiplas ativas
 async function loadActiveMultiples() {
     try {
+        const user = getCurrentUser();
+        if (!user) {
+            return [];
+        }
+
         const { data: multiples, error: multiplesError } = await window.supabaseClient
             .from('multiples')
             .select(`
                 *,
                 multiple_games (*)
             `)
+            .eq('user_id', user.id)
             .eq('status', 'active')
             .order('created_at', { ascending: false });
 
@@ -178,12 +202,18 @@ async function loadActiveMultiples() {
 // Função para carregar histórico de múltiplas
 async function loadHistoryMultiples() {
     try {
+        const user = getCurrentUser();
+        if (!user) {
+            return [];
+        }
+
         const { data: multiples, error: multiplesError } = await window.supabaseClient
             .from('multiples')
             .select(`
                 *,
                 multiple_games (*)
             `)
+            .eq('user_id', user.id)
             .in('status', ['won', 'lost'])
             .order('created_at', { ascending: false });
 

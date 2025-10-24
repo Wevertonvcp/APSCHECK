@@ -17,7 +17,46 @@
                 <h1><i class="fas fa-chart-line"></i> APS Check</h1>
                 <p>Seu checklist inteligente de apostas esportivas</p>
             </div>
+            <div class="auth-section">
+                <div id="userInfo" class="user-info" style="display: none;">
+                    <span id="userEmail"></span>
+                    <button id="logoutBtn" class="btn btn-secondary">
+                        <i class="fas fa-sign-out-alt"></i> Sair
+                    </button>
+                </div>
+                <button id="loginBtn" class="btn btn-primary">
+                    <i class="fas fa-user"></i> Entrar
+                </button>
+            </div>
         </header>
+
+        <!-- Seção informativa para usuários não logados -->
+        <section id="authInfo" class="auth-info" style="display: none;">
+            <div class="card auth-info-card">
+                <div class="auth-info-content">
+                    <i class="fas fa-user-lock auth-info-icon"></i>
+                    <h2>Bem-vindo ao APS Check!</h2>
+                    <p>Para começar a usar o checklist de apostas esportivas, você precisa fazer login ou criar uma conta.</p>
+                    <div class="auth-info-features">
+                        <div class="feature">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Organize suas apostas</span>
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Acompanhe resultados</span>
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-history"></i>
+                            <span>Histórico completo</span>
+                        </div>
+                    </div>
+                    <button id="authInfoLoginBtn" class="btn btn-primary auth-info-btn">
+                        <i class="fas fa-sign-in-alt"></i> Fazer Login
+                    </button>
+                </div>
+            </div>
+        </section>
 
         <main class="main-content">
             <!-- Seção para adicionar novos jogos -->
@@ -219,8 +258,62 @@
         </div>
     </div>
 
+    <!-- Modal de Autenticação -->
+    <div id="authModal" class="modal">
+        <div class="modal-content auth-modal">
+            <span class="close auth-close">&times;</span>
+            <div class="auth-container">
+                <div class="auth-tabs">
+                    <button id="loginTab" class="auth-tab active">Entrar</button>
+                    <button id="registerTab" class="auth-tab">Criar Conta</button>
+                </div>
+                
+                <!-- Formulário de Login -->
+                <div id="loginForm" class="auth-form active">
+                    <h2><i class="fas fa-sign-in-alt"></i> Entrar na sua conta</h2>
+                    <form id="loginFormElement">
+                        <div class="form-group">
+                            <label for="loginEmail">E-mail:</label>
+                            <input type="email" id="loginEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="loginPassword">Senha:</label>
+                            <input type="password" id="loginPassword" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary auth-btn">
+                            <i class="fas fa-sign-in-alt"></i> Entrar
+                        </button>
+                    </form>
+                </div>
+                
+                <!-- Formulário de Registro -->
+                <div id="registerForm" class="auth-form">
+                    <h2><i class="fas fa-user-plus"></i> Criar nova conta</h2>
+                    <form id="registerFormElement">
+                        <div class="form-group">
+                            <label for="registerEmail">E-mail:</label>
+                            <input type="email" id="registerEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="registerPassword">Senha:</label>
+                            <input type="password" id="registerPassword" required minlength="6">
+                        </div>
+                        <div class="form-group">
+                            <label for="confirmPassword">Confirmar Senha:</label>
+                            <input type="password" id="confirmPassword" required minlength="6">
+                        </div>
+                        <button type="submit" class="btn btn-primary auth-btn">
+                            <i class="fas fa-user-plus"></i> Criar Conta
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="supabase-config.js"></script>
     <script src="supabase-functions.js"></script>
+    <script src="auth.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
