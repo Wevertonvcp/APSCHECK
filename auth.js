@@ -72,7 +72,7 @@ async function checkAuthState() {
             updateUIForLoggedOutUser();
         }
     } catch (error) {
-        console.error('Erro ao verificar estado de autenticação:', error);
+        // Erro ao verificar estado de autenticação
         updateUIForLoggedOutUser();
     }
 }
@@ -135,9 +135,8 @@ async function handleLogin(event) {
         await loadData();
         
     } catch (error) {
-        console.error('Erro no login:', error);
-        showNotification(getAuthErrorMessage(error.message), 'error');
-    }
+            showNotification(getAuthErrorMessage(error.message), 'error');
+        }
 }
 
 // Registrar novo usuário
@@ -178,9 +177,8 @@ async function handleRegister(event) {
         }
         
     } catch (error) {
-        console.error('Erro no registro:', error);
-        showNotification(getAuthErrorMessage(error.message), 'error');
-    }
+            showNotification(getAuthErrorMessage(error.message), 'error');
+        }
 }
 
 // Fazer logout
@@ -202,9 +200,8 @@ async function handleLogout() {
         updateDisplay();
         
     } catch (error) {
-        console.error('Erro no logout:', error);
-        showNotification('Erro ao fazer logout!', 'error');
-    }
+            showNotification('Erro ao fazer logout', 'error');
+        }
 }
 
 // Atualizar UI para usuário logado

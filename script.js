@@ -42,6 +42,10 @@ document.addEventListener('DOMContentLoaded', async function() {
     setupEventListeners();
     // Aguardar verificação de autenticação antes de carregar dados
     await waitForAuthCheck();
+    await checkAdminAccess();
+    
+    // Inicializar selects de tipo de aposta
+    updateBetTypeSelects();
 });
 
 // Configurar event listeners
@@ -53,6 +57,24 @@ function setupEventListeners() {
     closeModal.addEventListener('click', closeMultipleModal);
     betAmount.addEventListener('input', updatePotentialReturn);
     clearHistoryBtn.addEventListener('click', clearHistory);
+    
+    // Event listener para o botão de administração
+    const adminBtn = document.getElementById('adminBtn');
+    if (adminBtn) {
+        adminBtn.addEventListener('click', openBetTypesModal);
+    }
+
+    // Event listeners para administração
+    const addBetTypeForm = document.getElementById('addBetTypeForm');
+    if (addBetTypeForm) {
+        addBetTypeForm.addEventListener('submit', handleAddBetType);
+    }
+    
+    // Event listener para formulário do modal
+    const modalAddBetTypeForm = document.getElementById('modalAddBetTypeForm');
+    if (modalAddBetTypeForm) {
+        modalAddBetTypeForm.addEventListener('submit', handleModalAddBetType);
+    }
     
     // Event listeners para modal de edição
     saveEditGameBtn.addEventListener('click', saveEditGame);
@@ -66,6 +88,23 @@ function setupEventListeners() {
         }
     });
     
+    // Event listener para fechar modal clicando fora dele
+    const betTypesModal = document.getElementById('betTypesModal');
+    if (betTypesModal) {
+        betTypesModal.addEventListener('click', function(event) {
+            if (event.target === betTypesModal) {
+                closeBetTypesModal();
+            }
+        });
+    }
+
+    // Event listener para tecla ESC
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeBetTypesModal();
+        }
+    });
+    
     // Fechar modal clicando fora
     window.addEventListener('click', function(event) {
         if (event.target === modal) {
@@ -76,12 +115,10 @@ function setupEventListeners() {
 
 // Adicionar novo jogo
 async function handleAddGame(event) {
-    console.log('🚀 handleAddGame chamada');
     event.preventDefault();
     
     // Verificação simples de autenticação
     if (!requireAuth()) {
-        console.log('❌ Usuário não autenticado, interrompendo adição');
         showNotification('Faça login para adicionar jogos!', 'error');
         return;
     }
@@ -97,26 +134,18 @@ async function handleAddGame(event) {
         createdAt: new Date().toISOString()
     };
     
-    console.log('📝 Dados do jogo criado:', game);
-    
     try {
-        console.log('💾 Tentando salvar no banco...');
         await savePendingGame(game);
         
-        console.log('📋 Adicionando ao array local...');
         pendingGames.push(game);
         
-        console.log('🔄 Atualizando display...');
         updateDisplay();
         
-        console.log('🧹 Resetando formulário...');
         gameForm.reset();
         
         // Animação de sucesso
-        console.log('✅ Mostrando notificação de sucesso...');
         showNotification('Jogo adicionado com sucesso!', 'success');
     } catch (error) {
-        console.error('💥 Erro ao adicionar jogo:', error);
         showNotification('Erro ao adicionar jogo: ' + error.message, 'error');
     }
 }
@@ -166,7 +195,6 @@ function openMultipleModal() {
     selectedGamesSummary.innerHTML = selectedGames.map(gameId => {
         const game = pendingGames.find(g => g.id === gameId);
         if (!game) {
-            console.error('Jogo não encontrado no resumo:', gameId);
             return '';
         }
         return `
@@ -209,7 +237,6 @@ async function confirmMultiple() {
         games: selectedGames.map(gameId => {
             const game = pendingGames.find(g => g.id === gameId);
             if (!game) {
-                console.error('Jogo não encontrado:', gameId);
                 return null;
             }
             return {
@@ -243,7 +270,6 @@ async function confirmMultiple() {
         
         showNotification('Múltipla criada com sucesso!', 'success');
     } catch (error) {
-        console.error('Erro ao criar múltipla:', error);
     }
 }
 
@@ -286,7 +312,6 @@ async function markGameResult(multipleId, gameId, result) {
         
         updateDisplay();
     } catch (error) {
-        console.error('Erro ao marcar resultado do jogo:', error);
         showNotification('Erro ao marcar resultado do jogo', 'error');
     }
 }
@@ -294,8 +319,6 @@ async function markGameResult(multipleId, gameId, result) {
 // Remover jogo pendente
 async function removePendingGame(gameId) {
     try {
-        console.log('Removendo jogo com ID:', gameId, 'Tipo:', typeof gameId);
-        console.log('Jogos pendentes antes:', pendingGames.map(g => ({id: g.id, type: typeof g.id})));
         
         // Remover do Supabase
         await removePendingGameFromDB(gameId);
@@ -304,12 +327,10 @@ async function removePendingGame(gameId) {
         pendingGames = pendingGames.filter(game => game.id.toString() !== gameId.toString());
         selectedGames = selectedGames.filter(id => id.toString() !== gameId.toString());
         
-        console.log('Jogos pendentes depois:', pendingGames.map(g => ({id: g.id, type: typeof g.id})));
         
         updateDisplay();
         showNotification('Jogo removido!', 'info');
     } catch (error) {
-        console.error('Erro ao remover jogo:', error);
         showNotification('Erro ao remover jogo', 'error');
     }
 }
@@ -345,7 +366,6 @@ async function deleteActiveMultiple(multipleId) {
                 showNotification('Múltipla excluída e jogos retornados para pendentes!', 'info');
             }
         } catch (error) {
-            console.error('Erro ao excluir múltipla:', error);
             showNotification('Erro ao excluir múltipla', 'error');
         }
     }
@@ -362,7 +382,6 @@ async function deleteHistoryMultiple(multipleId) {
             updateDisplay();
             showNotification('Múltipla removida do histórico!', 'info');
         } catch (error) {
-            console.error('Erro ao remover múltipla do histórico:', error);
             showNotification('Erro ao remover múltipla do histórico', 'error');
         }
     }
@@ -379,7 +398,6 @@ async function clearHistory() {
             updateDisplay();
             showNotification('Histórico limpo!', 'info');
         } catch (error) {
-            console.error('Erro ao limpar histórico:', error);
             showNotification('Erro ao limpar histórico', 'error');
         }
     }
@@ -415,12 +433,9 @@ function copyMultipleGames(multipleId) {
 
 // Abrir modal de edição de jogo
 function openEditGameModal(gameId) {
-    console.log('Abrindo modal de edição para o jogo:', gameId, 'Tipo:', typeof gameId);
-    console.log('Jogos pendentes disponíveis:', pendingGames.map(g => ({id: g.id, type: typeof g.id})));
     
     const game = pendingGames.find(g => g.id.toString() === gameId.toString());
     if (!game) {
-        console.log('Jogo não encontrado:', gameId);
         return;
     }
 
@@ -480,32 +495,19 @@ async function saveEditGame() {
         closeEditGameModal();
         showNotification('Jogo editado com sucesso!', 'success');
     } catch (error) {
-        console.error('Erro ao editar jogo:', error);
         showNotification('Erro ao editar jogo', 'error');
     }
 }
 
 // Obter label do tipo de aposta
 function getBetTypeLabel(betType) {
-    const betTypeNames = {
-        '1': 'Vitória Casa (1)',
-        'X': 'Empate (X)',
-        '2': 'Vitória Visitante (2)',
-        '1X': 'Casa ou Empate (1X)',
-        '12': 'Casa ou Visitante (12)',
-        'X2': 'Empate ou Visitante (X2)',
-        'over1.5': 'Mais de 1.5 gols',
-        'over2.5': 'Mais de 2.5 gols',
-        'under2.5': 'Menos de 2.5 gols',
-        'btts': 'Ambos marcam',
-        'over2.5_btts': 'Mais de 2.5 e Ambas Marcam',
-        '1_btts': 'Casa e Ambos Marcam',
-        '2_btts': 'Fora e Ambos Marcam',
-        '1_over2.5': 'Casa e Mais de 2.5 gols',
-        '1_over1.5': 'Casa e Mais de 1.5 gols',
-        '1X_over1.5': 'Casa ou Empate e Mais de 1.5 gols'
-    };
-    return betTypeNames[betType] || betType;
+    // Verificar tipos em cache (carregados do banco)
+    if (window.customBetTypesCache && window.customBetTypesCache[betType]) {
+        return window.customBetTypesCache[betType];
+    }
+    
+    // Retornar o próprio betType se não encontrado no cache
+    return betType;
 }
 
 // Formatar data
@@ -552,8 +554,8 @@ function updatePendingGames() {
                 <span>${formatDate(game.gameDate)}</span>
                 <div class="game-actions">
                     <button onclick="event.stopPropagation(); openEditGameModal('${game.id}')" 
-                            class="btn-edit" title="Editar jogo">
-                        <i class="fas fa-cog"></i>
+                            class="btn btn-primary btn-small" title="Editar jogo">
+                        <i class="fas fa-edit"></i>
                     </button>
                     <button onclick="event.stopPropagation(); removePendingGame('${game.id}')" 
                             class="btn btn-danger btn-small">
@@ -704,7 +706,6 @@ async function loadData() {
 
         updateDisplay();
     } catch (error) {
-        console.error('Erro ao carregar dados:', error);
         showNotification('Erro ao carregar dados da aplicação!', 'error');
     }
 }
@@ -772,26 +773,31 @@ function showNotification(message, type = 'info') {
 // Funções de proteção de autenticação
 async function waitForAuthCheck() {
     // Aguardar até que as funções de autenticação estejam disponíveis
-    while (typeof isUserLoggedIn !== 'function') {
+    while (typeof isUserLoggedIn !== 'function' || typeof getCurrentUser !== 'function') {
         await new Promise(resolve => setTimeout(resolve, 100));
     }
     
     // Aguardar até que a verificação de autenticação seja concluída
     let attempts = 0;
-    const maxAttempts = 50; // 5 segundos máximo
+    const maxAttempts = 100; // 10 segundos máximo
     
     while (attempts < maxAttempts) {
         try {
+            // Aguardar um pouco mais para garantir que o auth.js foi totalmente inicializado
+            if (attempts === 0) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            
             const user = getCurrentUser();
             if (user !== undefined) {
                 // Autenticação verificada, carregar dados se logado
                 if (isUserLoggedIn()) {
                     await loadData();
+                } else {
                 }
                 return; // Sair da função independentemente do status de login
             }
         } catch (error) {
-            // Ainda aguardando inicialização
         }
         
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -799,8 +805,6 @@ async function waitForAuthCheck() {
     }
     
     // Se chegou aqui, a autenticação foi inicializada mas pode não estar logado
-    // Não mostrar mensagem de erro automaticamente, apenas não carregar dados
-    console.log('Autenticação inicializada, usuário não está logado');
 }
 
 function showAuthRequiredMessage() {
@@ -818,14 +822,423 @@ function showAuthRequiredMessage() {
 // Função de verificação de autenticação simplificada
 function requireAuth() {
     if (typeof isUserLoggedIn !== 'function') {
-        console.error('Função isUserLoggedIn não está disponível');
         return false;
     }
     
-    if (!isUserLoggedIn()) {
-        console.log('Usuário não está logado');
+    if (typeof getCurrentUser !== 'function') {
+        return false;
+    }
+    
+    const user = getCurrentUser();
+    const isLoggedIn = isUserLoggedIn();
+    
+    if (!isLoggedIn || !user) {
         return false;
     }
     
     return true;
+}
+
+// Verificar se o usuário é administrador
+function isAdmin() {
+    if (!requireAuth()) return false;
+    
+    const user = window.supabaseClient?.auth?.getUser?.()?.then?.(response => response.data?.user);
+    if (!user) return false;
+    
+    // UID do administrador
+    const adminUID = 'e2eda014-0a40-4d5a-b496-360353977739';
+    return user.id === adminUID;
+}
+
+// Verificar se o usuário é administrador (versão async)
+async function isAdminAsync() {
+    // Primeiro verificar se as funções de auth estão disponíveis
+    if (typeof getCurrentUser !== 'function' || typeof isUserLoggedIn !== 'function') {
+        return false;
+    }
+    
+    // Verificar se o usuário está logado usando as funções locais primeiro
+    const currentUser = getCurrentUser();
+    const isLoggedIn = isUserLoggedIn();
+    
+    if (!isLoggedIn || !currentUser) {
+        return false;
+    }
+    
+    try {
+        // UID do administrador
+        const adminUID = 'e2eda014-0a40-4d5a-b496-360353977739';
+        const isAdmin = currentUser.id === adminUID;
+        
+        if (isAdmin) {
+        } else {
+        }
+        
+        return isAdmin;
+    } catch (error) {
+         return false;
+     }
+}
+
+// Verificar acesso de administrador e mostrar/ocultar botão
+async function checkAdminAccess() {
+    const adminBtn = document.getElementById('adminBtn');
+    if (!adminBtn) {
+        return;
+    }
+    
+    // Aguardar um pouco mais para garantir que a autenticação foi inicializada
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const isUserAdmin = await isAdminAsync();
+    if (isUserAdmin) {
+        adminBtn.style.display = 'inline-block';
+    } else {
+        adminBtn.style.display = 'none';
+    }
+}
+
+// Carregar lista de tipos de aposta existentes
+async function loadBetTypesList() {
+    const betTypesList = document.getElementById('betTypesList');
+    if (!betTypesList) {
+        return;
+    }
+    
+    try {
+        
+        // Carregar todos os tipos do banco de dados
+        const allBetTypesFromDB = await loadBetTypesFromDB();
+        
+        // Tipos básicos que não podem ser removidos
+        const basicTypes = ['1', 'X', '2', '1X', '12', 'X2'];
+        
+        if (allBetTypesFromDB.length === 0) {
+            betTypesList.innerHTML = `
+                <div class="empty-state">
+                    <p>Nenhum tipo de aposta encontrado.</p>
+                    <p style="font-size: 0.9em; color: #666;">Execute a query SQL para inserir os tipos padrão.</p>
+                </div>
+            `;
+            return;
+        }
+        
+        betTypesList.innerHTML = allBetTypesFromDB.map(betType => {
+            const canRemove = !basicTypes.includes(betType.key);
+            
+            return `
+                <div class="bet-type-item">
+                    <div class="bet-type-info">
+                        <div class="bet-type-key">
+                            <strong>${betType.key}</strong>
+                        </div>
+                        <div class="bet-type-label">${betType.label}</div>
+                    </div>
+                    <div class="bet-type-actions">
+                        ${canRemove ? `
+                            <button onclick="removeBetType('${betType.key}')" class="btn-remove-bet-type" title="Remover tipo">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        ` : `
+                            <span style="color: #999; font-size: 0.8em;">
+                                Tipo básico
+                            </span>
+                        `}
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+    } catch (error) {
+        betTypesList.innerHTML = `
+            <div class="error-state">
+                <p style="color: #f44336;">Erro ao carregar tipos de aposta: ${error.message}</p>
+            </div>
+        `;
+        showNotification('Erro ao carregar tipos de aposta', 'error');
+    }
+}
+
+// Adicionar novo tipo de aposta
+async function handleAddBetType(event) {
+    event.preventDefault();
+    
+    const isUserAdmin = await isAdminAsync();
+    if (!isUserAdmin) {
+        showNotification('Acesso negado! Apenas administradores podem adicionar tipos de aposta.', 'error');
+        return;
+    }
+    
+    const keyInput = document.getElementById('newBetTypeKey');
+    const labelInput = document.getElementById('newBetTypeLabel');
+    
+    const key = keyInput.value.trim();
+    const label = labelInput.value.trim();
+    
+    if (!key || !label) {
+        showNotification('Preencha todos os campos!', 'error');
+        return;
+    }
+    
+    // Validar formato da chave
+    if (!/^[a-zA-Z0-9._]+$/.test(key)) {
+        showNotification('O código deve conter apenas letras, números, pontos e underscores!', 'error');
+        return;
+    }
+    
+    try {
+        // Verificar se já existe no banco
+        const existingBetTypes = await loadBetTypesFromDB();
+        const keyExists = existingBetTypes.some(bt => bt.key === key);
+        
+        if (keyExists) {
+            showNotification('Este código de tipo já existe!', 'error');
+            return;
+        }
+        
+        // Salvar no banco de dados
+        await saveBetTypeToDB(key, label);
+        
+        // Limpar formulário
+        keyInput.value = '';
+        labelInput.value = '';
+        
+        // Recarregar lista do modal
+        await loadModalBetTypesList();
+        updateBetTypeSelects();
+        
+        showNotification(`Tipo de aposta "${label}" adicionado com sucesso!`, 'success');
+    } catch (error) {
+        showNotification('Erro ao adicionar tipo de aposta', 'error');
+    }
+}
+
+// Obter objeto com tipos de aposta atuais
+
+
+// Adicionar tipo de aposta ao sistema
+
+// Função específica para adicionar tipo de aposta no modal
+async function handleModalAddBetType(event) {
+    event.preventDefault();
+    
+    const isUserAdmin = await isAdminAsync();
+    if (!isUserAdmin) {
+        showNotification('Acesso negado! Apenas administradores podem adicionar tipos de aposta.', 'error');
+        return;
+    }
+    
+    const keyInput = document.getElementById('modalNewBetTypeKey');
+    const labelInput = document.getElementById('modalNewBetTypeLabel');
+    
+    const key = keyInput.value.trim();
+    const label = labelInput.value.trim();
+    
+    if (!key || !label) {
+        showNotification('Preencha todos os campos!', 'error');
+        return;
+    }
+    
+    // Validar formato da chave
+    if (!/^[a-zA-Z0-9._]+$/.test(key)) {
+        showNotification('O código deve conter apenas letras, números, pontos e underscores!', 'error');
+        return;
+    }
+    
+    try {
+        // Verificar se já existe no banco
+        const existingBetTypes = await loadBetTypesFromDB();
+        const keyExists = existingBetTypes.some(bt => bt.key === key);
+        
+        if (keyExists) {
+            showNotification('Este código de tipo já existe!', 'error');
+            return;
+        }
+        
+        // Salvar no banco de dados
+        await saveBetTypeToDB(key, label);
+        
+        // Limpar formulário
+        keyInput.value = '';
+        labelInput.value = '';
+        
+        // Recarregar lista do modal
+        await loadModalBetTypesList();
+        updateBetTypeSelects();
+        
+        showNotification(`Tipo de aposta "${label}" adicionado com sucesso!`, 'success');
+    } catch (error) {
+        showNotification('Erro ao adicionar tipo de aposta', 'error');
+    }
+}
+
+function addBetTypeToSystem(key, label) {
+    // Função getBetTypeLabel já atualizada para usar cache do banco
+    
+    // Salvar no localStorage
+    const customBetTypes = JSON.parse(localStorage.getItem('customBetTypes') || '{}');
+    customBetTypes[key] = label;
+    localStorage.setItem('customBetTypes', JSON.stringify(customBetTypes));
+}
+
+// Remover tipo de aposta
+async function removeBetType(key) {
+    const isUserAdmin = await isAdminAsync();
+    if (!isUserAdmin) {
+        showNotification('Acesso negado! Apenas administradores podem remover tipos de aposta.', 'error');
+        return;
+    }
+    
+    // Tipos básicos não podem ser removidos
+    const basicTypes = ['1', 'X', '2', '1X', '12', 'X2'];
+    if (basicTypes.includes(key)) {
+        showNotification('Tipos básicos de aposta não podem ser removidos!', 'error');
+        return;
+    }
+    
+    if (confirm(`Tem certeza que deseja remover o tipo "${key}"?`)) {
+        try {
+            // Remover do banco de dados
+            await removeBetTypeFromDB(key);
+            
+            // Recarregar lista do modal
+            await loadModalBetTypesList();
+            updateBetTypeSelects();
+            
+            showNotification(`Tipo de aposta "${key}" removido com sucesso!`, 'success');
+        } catch (error) {
+            showNotification('Erro ao remover tipo de aposta', 'error');
+        }
+    }
+}
+
+// Carregar lista de tipos de aposta no modal
+async function loadModalBetTypesList() {
+    const betTypesList = document.getElementById('modalBetTypesList');
+    if (!betTypesList) {
+        return;
+    }
+    
+    try {
+        
+        // Carregar todos os tipos do banco de dados
+        const allBetTypesFromDB = await loadBetTypesFromDB();
+        
+        // Tipos básicos que não podem ser removidos
+        const basicTypes = ['1', 'X', '2', '1X', '12', 'X2'];
+        
+        if (allBetTypesFromDB.length === 0) {
+            betTypesList.innerHTML = `
+                <div class="empty-state">
+                    <p>Nenhum tipo de aposta encontrado.</p>
+                    <p style="font-size: 0.9em; color: #666;">Execute a query SQL para inserir os tipos padrão.</p>
+                </div>
+            `;
+            return;
+        }
+        
+        betTypesList.innerHTML = allBetTypesFromDB.map(betType => {
+            const canRemove = !basicTypes.includes(betType.key);
+            
+            return `
+                <div class="bet-type-item">
+                    <div class="bet-type-info">
+                        <div class="bet-type-key">
+                            <strong>${betType.key}</strong>
+                        </div>
+                        <div class="bet-type-label">${betType.label}</div>
+                    </div>
+                    <div class="bet-type-actions">
+                        ${canRemove ? `
+                            <button onclick="removeBetType('${betType.key}')" class="btn-remove-bet-type" title="Remover tipo">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        ` : `
+                            <span style="color: #999; font-size: 0.8em;">
+                                Tipo básico
+                            </span>
+                        `}
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+    } catch (error) {
+        betTypesList.innerHTML = `
+            <div class="error-state">
+                <p style="color: #f44336;">Erro ao carregar tipos de aposta: ${error.message}</p>
+            </div>
+        `;
+        showNotification('Erro ao carregar tipos de aposta', 'error');
+    }
+}
+
+// Abrir modal de tipos de aposta
+function openBetTypesModal() {
+    const modal = document.getElementById('betTypesModal');
+    if (modal) {
+        modal.style.display = 'block';
+        loadModalBetTypesList();
+        updateBetTypeSelects(); // Garantir que os selects estejam atualizados
+    }
+}
+
+// Fechar modal de tipos de aposta
+function closeBetTypesModal() {
+    const modal = document.getElementById('betTypesModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// Atualizar selects de tipo de aposta
+async function updateBetTypeSelects() {
+    const betTypeSelect = document.getElementById('betType');
+    const editBetTypeSelect = document.getElementById('editBetType');
+    
+    try {
+        
+        // Carregar todos os tipos do banco
+        const allBetTypesFromDB = await loadBetTypesFromDB();
+        
+        const allBetTypes = {};
+        allBetTypesFromDB.forEach(betType => {
+            allBetTypes[betType.key] = betType.label;
+        });
+        
+        // Atualizar cache global
+        window.customBetTypesCache = allBetTypes;
+        
+        [betTypeSelect, editBetTypeSelect].forEach((select, index) => {
+            if (!select) {
+                return;
+            }
+            
+            const currentValue = select.value;
+            select.innerHTML = '<option value="">Selecione o tipo de aposta...</option>';
+            
+            // Adicionar todos os tipos do banco
+            Object.entries(allBetTypes).forEach(([key, label]) => {
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = label;
+                select.appendChild(option);
+            });
+            
+            // Restaurar valor selecionado se ainda existir
+            if (currentValue && allBetTypes[currentValue]) {
+                select.value = currentValue;
+            }
+        });
+        
+    } catch (error) {
+        showNotification('Erro ao carregar tipos de aposta do banco de dados.', 'error');
+        
+        // Limpar selects em caso de erro
+        [betTypeSelect, editBetTypeSelect].forEach(select => {
+            if (!select) return;
+            select.innerHTML = '<option value="">Erro ao carregar tipos...</option>';
+        });
+    }
 }

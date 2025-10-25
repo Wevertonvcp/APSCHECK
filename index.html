@@ -20,6 +20,9 @@
             <div class="auth-section">
                 <div id="userInfo" class="user-info" style="display: none;">
                     <span id="userEmail"></span>
+                    <button id="adminBtn" class="btn btn-admin" style="display: none;" title="Administração">
+                        <i class="fas fa-cogs"></i> Admin
+                    </button>
                     <button id="logoutBtn" class="btn btn-secondary">
                         <i class="fas fa-sign-out-alt"></i> Sair
                     </button>
@@ -131,6 +134,43 @@
                         <button id="createMultiple" class="btn btn-success">
                             <i class="fas fa-layer-group"></i> Criar Múltipla
                         </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Seção de Administração -->
+            <section id="adminSection" class="admin-section" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-cogs"></i> Administração - Tipos de Aposta</h2>
+                    </div>
+                    <div class="admin-content">
+                        <div class="admin-form">
+                            <h3>Adicionar Novo Tipo de Aposta</h3>
+                            <form id="addBetTypeForm">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="newBetTypeKey">Código do Tipo:</label>
+                                        <input type="text" id="newBetTypeKey" placeholder="Ex: over3.5" required>
+                                        <small>Use apenas letras, números, pontos e underscores</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="newBetTypeLabel">Nome do Tipo:</label>
+                                        <input type="text" id="newBetTypeLabel" placeholder="Ex: Mais de 3.5 gols" required>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-plus"></i> Adicionar Tipo de Aposta
+                                </button>
+                            </form>
+                        </div>
+                        
+                        <div class="admin-list">
+                            <h3>Tipos de Aposta Existentes</h3>
+                            <div id="betTypesList" class="bet-types-list">
+                                <!-- Lista será preenchida dinamicamente -->
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -306,6 +346,48 @@
                             <i class="fas fa-user-plus"></i> Criar Conta
                         </button>
                     </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Administração de Tipos de Aposta -->
+    <div id="betTypesModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-cogs"></i> Gerenciar Tipos de Aposta</h2>
+                <span class="close" onclick="closeBetTypesModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="bet-types-admin">
+                    <!-- Formulário para adicionar novo tipo -->
+                    <div class="add-bet-type-section">
+                        <h3><i class="fas fa-plus-circle"></i> Adicionar Novo Tipo</h3>
+                        <form id="modalAddBetTypeForm" class="bet-type-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="modalNewBetTypeKey">Código:</label>
+                                    <input type="text" id="modalNewBetTypeKey" placeholder="Ex: over3.5" required>
+                                    <small>Apenas letras, números, pontos e underscores</small>
+                                </div>
+                                <div class="form-group">
+                                    <label for="modalNewBetTypeLabel">Descrição:</label>
+                                    <input type="text" id="modalNewBetTypeLabel" placeholder="Ex: Mais de 3.5 gols" required>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Adicionar Tipo
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Lista de tipos existentes -->
+                    <div class="bet-types-list-section">
+                        <h3><i class="fas fa-list"></i> Tipos Existentes</h3>
+                        <div id="modalBetTypesList" class="bet-types-grid">
+                            <!-- Lista será preenchida dinamicamente -->
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

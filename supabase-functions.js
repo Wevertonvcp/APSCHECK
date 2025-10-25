@@ -4,10 +4,7 @@
 // Função para salvar jogo pendente
 async function savePendingGame(game) {
     try {
-        console.log('🎮 Iniciando savePendingGame com:', game);
-        
         const user = getCurrentUser();
-        console.log('👤 Usuário atual:', user);
         
         if (!user) {
             throw new Error('Usuário não autenticado');
@@ -24,20 +21,13 @@ async function savePendingGame(game) {
             game_date: game.gameDate,
             created_at: game.createdAt
         };
-        
-        console.log('📊 Tentando inserir com user_id:', gameDataWithUserId);
 
         let { data, error } = await window.supabaseClient
             .from('pending_games')
             .insert([gameDataWithUserId]);
 
-        console.log('✅ Resposta do Supabase - data:', data);
-        console.log('❌ Resposta do Supabase - error:', error);
-
         // Se der erro relacionado à coluna user_id, tentar sem ela (estrutura antiga)
         if (error && (error.message.includes('user_id') || error.message.includes('column') || error.message.includes('does not exist'))) {
-            console.log('⚠️ Coluna user_id não existe, tentando sem ela...');
-            
             const gameDataWithoutUserId = {
                 id: game.id,
                 home_team: game.homeTeam,
@@ -48,25 +38,18 @@ async function savePendingGame(game) {
                 created_at: game.createdAt
             };
             
-            console.log('📊 Tentando inserir sem user_id:', gameDataWithoutUserId);
-            
             const result = await window.supabaseClient
                 .from('pending_games')
                 .insert([gameDataWithoutUserId]);
                 
             data = result.data;
             error = result.error;
-            
-            console.log('✅ Segunda tentativa - data:', data);
-            console.log('❌ Segunda tentativa - error:', error);
         }
 
         if (error) throw error;
         
-        console.log('🎉 Jogo salvo com sucesso!');
         return data;
     } catch (error) {
-        console.error('💥 Erro ao salvar jogo pendente:', error);
         showNotification('Erro ao salvar jogo: ' + error.message, 'error');
         throw error;
     }
@@ -99,7 +82,6 @@ async function loadPendingGames() {
             createdAt: game.created_at
         }));
     } catch (error) {
-        console.error('Erro ao carregar jogos pendentes:', error);
         showNotification('Erro ao carregar jogos!', 'error');
         return [];
     }
@@ -115,7 +97,6 @@ async function removePendingGameFromDB(gameId) {
 
         if (error) throw error;
     } catch (error) {
-        console.error('Erro ao remover jogo pendente:', error);
         showNotification('Erro ao remover jogo!', 'error');
         throw error;
     }
@@ -138,7 +119,6 @@ async function updatePendingGame(gameId, game) {
         if (error) throw error;
         return data;
     } catch (error) {
-        console.error('Erro ao atualizar jogo pendente:', error);
         showNotification('Erro ao atualizar jogo!', 'error');
         throw error;
     }
@@ -188,7 +168,6 @@ async function saveMultiple(multiple) {
 
         return multipleData;
     } catch (error) {
-        console.error('Erro ao salvar múltipla:', error);
         showNotification('Erro ao salvar múltipla!', 'error');
         throw error;
     }
@@ -234,7 +213,6 @@ async function loadActiveMultiples() {
             }))
         }));
     } catch (error) {
-        console.error('Erro ao carregar múltiplas ativas:', error);
         showNotification('Erro ao carregar múltiplas ativas!', 'error');
         return [];
     }
@@ -280,7 +258,6 @@ async function loadHistoryMultiples() {
             }))
         }));
     } catch (error) {
-        console.error('Erro ao carregar histórico de múltiplas:', error);
         showNotification('Erro ao carregar histórico!', 'error');
         return [];
     }
@@ -298,7 +275,6 @@ async function updateMultipleGameResult(multipleId, gameId, result) {
         if (error) throw error;
         return data;
     } catch (error) {
-        console.error('Erro ao atualizar resultado do jogo:', error);
         showNotification('Erro ao atualizar resultado!', 'error');
         throw error;
     }
@@ -314,7 +290,6 @@ async function updateMultipleStatus(multipleId, status) {
 
         if (error) throw error;
     } catch (error) {
-        console.error('Erro ao atualizar status da múltipla:', error);
         showNotification('Erro ao atualizar múltipla!', 'error');
         throw error;
     }
@@ -338,7 +313,6 @@ async function removeMultiple(multipleId) {
         if (error) throw error;
         return data;
     } catch (error) {
-        console.error('Erro ao remover múltipla:', error);
         showNotification('Erro ao remover múltipla!', 'error');
         throw error;
     }
@@ -356,7 +330,6 @@ async function clearHistoryMultiples() {
         if (error) throw error;
         return data;
     } catch (error) {
-        console.error('Erro ao limpar histórico:', error);
         showNotification('Erro ao limpar histórico!', 'error');
         throw error;
     }
@@ -373,7 +346,6 @@ async function updateMultipleStatus(multipleId, status) {
         if (error) throw error;
         return data;
     } catch (error) {
-        console.error('Erro ao atualizar status da múltipla:', error);
         showNotification('Erro ao atualizar status!', 'error');
         throw error;
     }
@@ -390,8 +362,86 @@ async function removePendingGameFromDB(gameId) {
         if (error) throw error;
         return data;
     } catch (error) {
-        console.error('Erro ao remover jogo pendente:', error);
         showNotification('Erro ao remover jogo!', 'error');
         throw error;
+    }
+}
+
+// ==================== FUNÇÕES PARA TIPOS DE APOSTA ====================
+
+// Carregar todos os tipos de aposta do banco de dados
+async function loadBetTypesFromDB() {
+    try {
+        const { data, error } = await window.supabaseClient
+            .from('bet_types')
+            .select('*')
+            .order('created_at', { ascending: true });
+
+        if (error) throw error;
+        
+        return data || [];
+    } catch (error) {
+        // Retornar array vazio em caso de erro para não quebrar a aplicação
+        return [];
+    }
+}
+
+// Salvar novo tipo de aposta no banco de dados
+async function saveBetTypeToDB(key, label) {
+    try {
+        const user = getCurrentUser();
+        if (!user) {
+            throw new Error('Usuário não autenticado');
+        }
+
+        const betTypeData = {
+            key: key,
+            label: label,
+            created_by: user.id
+        };
+
+        const { data, error } = await window.supabaseClient
+            .from('bet_types')
+            .insert([betTypeData])
+            .select();
+
+        if (error) throw error;
+        
+        return data[0];
+    } catch (error) {
+        throw error;
+    }
+}
+
+// Remover tipo de aposta do banco de dados
+async function removeBetTypeFromDB(key) {
+    try {
+        const { error } = await window.supabaseClient
+            .from('bet_types')
+            .delete()
+            .eq('key', key);
+
+        if (error) throw error;
+        
+        return true;
+    } catch (error) {
+        throw error;
+    }
+}
+
+// Verificar se um tipo de aposta existe no banco
+async function betTypeExistsInDB(key) {
+    try {
+        const { data, error } = await window.supabaseClient
+            .from('bet_types')
+            .select('key')
+            .eq('key', key)
+            .single();
+
+        if (error && error.code !== 'PGRST116') throw error; // PGRST116 = not found
+        
+        return !!data;
+    } catch (error) {
+        return false;
     }
 }
